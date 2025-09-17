@@ -25,6 +25,64 @@ services:
     networks:
       - backend
 
+  api:
+    build: ./backend
+    container_name: backend_api
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+      - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
+    ports:
+      - "8000:8000"
+    networks:
+      - backend
+
+  celery:
+    build: ./celery
+    container_name: celery_worker
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    networks:
+      - backend
+
+  frontend:
+    build: ./frontend
+    container_name: frontend_app
+    restart: no
+    env_file:
+      - .env
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    networks:
+      - frontend
+      - backend
+  nginx:
+    image: nginx:1.28
+    container_name: nginx_server
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - api
+    networks:
+      - frontend
+      - backend
 
 
 volumes:
@@ -33,3 +91,4 @@ volumes:
 
 networks:
   backend:
+  frontend:
