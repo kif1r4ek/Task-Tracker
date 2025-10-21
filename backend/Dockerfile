@@ -1,4 +1,7 @@
-FROM ubuntu:latest
-LABEL authors="gosha"
+FROM photon:3.14-slim AS builder
 
-ENTRYPOINT ["top", "-b"]
+WORKDIR task-tracker/backend
+
+COPY ./requirements.txt ./requirements.txt
+
+RUN pip install --no-cache-dir --upgrade -r

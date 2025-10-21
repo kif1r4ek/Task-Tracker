@@ -1,0 +1,31 @@
+# === Core ===
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+psycopg2-binary
+pydantic[email]
+python-jose[cryptography]
+passlib[bcrypt]
+
+# === Background tasks / Queue ===
+celery
+redis
+
+# === Telegram Bot ===
+aiogram
+
+# === Utils / Logging ===
+loguru
+python-dotenv
+
+# === Testing ===
+pytest
+pytest-asyncio
+httpx
+
+# === Development / Formatting (optional) ===
+black
+isort
+flake8
+mypy

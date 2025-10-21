@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   postgres:
     image: postgres:17.6
@@ -13,6 +15,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:7.4
@@ -24,6 +31,11 @@ services:
       - redis_data:/data
     networks:
       - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
 
   api:
     build: ./backend
@@ -32,8 +44,10 @@ services:
     env_file:
       - .env
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/${REDIS_DB}
@@ -41,8 +55,13 @@ services:
       - "8000:8000"
     networks:
       - backend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      retries: 5
+      start_period: 20s
 
-  celery:
+  celery_worker:
     build: ./celery
     container_name: celery_worker
     restart: always
@@ -51,6 +70,51 @@ services:
     environment:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - backend
+
+  celery_beat:
+    build: ./celery
+    container_name: celery_beat
+    restart: always
+    env_file:
+      - .env
+    command: celery -A app.worker beat --loglevel=info
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - backend
+
+  flower:
+    image: mher/flower
+    container_name: celery_flower
+    restart: always
+    command: celery -A app.worker flower --port=5555
+    ports:
+      - "5555:5555"
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+      celery_worker:
+        condition: service_started
     networks:
       - backend
 
@@ -61,12 +125,14 @@ services:
     env_file:
       - .env
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
-      - "3000:3000"
+      - "3000:80"
     networks:
       - frontend
       - backend
+
   nginx:
     image: nginx:1.28
     container_name: nginx_server
@@ -78,8 +144,10 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/ssl:/etc/nginx/ssl
     depends_on:
-      - frontend
-      - api
+      frontend:
+        condition: service_started
+      api:
+        condition: service_healthy
     networks:
       - frontend
       - backend
