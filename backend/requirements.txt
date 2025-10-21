@@ -5,7 +5,7 @@ uvicorn[standard]==0.30.6
 # DB / ORM
 SQLAlchemy==2.0.35
 alembic==1.13.2
-psycopg2-binary==2.9.9
+psycopg[binary]==3.1.19
 
 # Validation / settings
 pydantic==2.9.2
@@ -18,7 +18,7 @@ passlib[bcrypt]==1.7.4
 
 # Queues / Realtime
 celery==5.4.0
-redis==5.0.7   # поддерживает redis.asyncio для Pub/Sub и Celery backend/broker
+redis==5.0.7
 
 # Telegram bot
 aiogram==3.13.1
@@ -31,7 +31,7 @@ pytest==8.3.3
 pytest-asyncio==0.24.0
 httpx==0.27.2
 
-# === Linters/formatters (dev, по желанию) ===
+# === Linters/formatters (dev, опционально) ===
 black==24.8.0
 isort==5.13.2
 flake8==7.1.1
