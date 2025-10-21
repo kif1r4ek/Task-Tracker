@@ -5,7 +5,7 @@ uvicorn[standard]==0.30.6
 # DB / ORM
 SQLAlchemy==2.0.35
 alembic==1.13.2
-psycopg[binary]~=3.1.19
+psycopg[binary]==3.1.19
 
 # Validation / settings
 pydantic==2.9.2
